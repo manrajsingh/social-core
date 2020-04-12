@@ -54,7 +54,7 @@ from .azuread import AzureADOAuth2
 class AzureADB2COAuth2(AzureADOAuth2):
     name = 'azuread-b2c-oauth2'
 
-    BASE_URL = 'https://login.microsoftonline.com/{tenant_id}'
+    BASE_URL = 'https://{base_url}'
     AUTHORIZATION_URL = '{base_url}/oauth2/v2.0/authorize'
     OPENID_CONFIGURATION_URL = '{base_url}/v2.0/.well-known/openid-configuration?p={policy}'
     ACCESS_TOKEN_URL = '{base_url}/oauth2/v2.0/token?p={policy}'
@@ -74,8 +74,12 @@ class AzureADB2COAuth2(AzureADOAuth2):
     ]
 
     @property
-    def tenant_id(self):
-        return self.setting('TENANT_ID', 'common')
+    def domain_name(self):
+        domain = self.setting('DOMAIN_NAME')
+        if not domain or not domain.lower().endswith('onmicrosoft.com'):
+            raise AuthException('SOCIAL_AUTH_AZUREAD_B2C_OAUTH2_DOMAIN_NAME is '
+                                'required and should end with `onmicrosoft.com`')
+        return domain.lower()
 
     @property
     def policy(self):
@@ -87,7 +91,10 @@ class AzureADB2COAuth2(AzureADOAuth2):
 
     @property
     def base_url(self):
-        return self.BASE_URL.format(tenant_id=self.tenant_id)
+        return self.BASE_URL.format(base_url=self.domain_name
+                                            .replace(".onmicrosoft.com",'') 
+                                            + '.b2clogin.com/' 
+                                            + self.domain_name)
 
     def openid_configuration_url(self):
         return self.OPENID_CONFIGURATION_URL.format(base_url=self.base_url,
